@@ -10,6 +10,7 @@ import SpriteKit
 class GameScene: SKScene {
     var scrollNode:SKNode!
     var wallNode:SKNode!
+    var bird:SKSpriteNode!
     // SKView上にシーンが表示された時に呼ばれるメソッド
     override func didMove(to view: SKView) {
         // 背景色を設定
@@ -24,6 +25,7 @@ class GameScene: SKScene {
         setupGround()
         setupCloud()
         setupWall()
+        setupBird()
     }
 
     func setupGround() {
@@ -138,5 +140,23 @@ class GameScene: SKScene {
         let repeatForeverAnimation = SKAction.repeatForever(SKAction.sequence([createWallAnimation, waitAnimation]))
         // 壁を標示するノードに壁の作成を無限に繰り返すアクションを設定
         wallNode.run(repeatForeverAnimation)
+    }
+    
+    func setupBird() {
+        // 鳥の画像を２種類読み込む
+        let birdTextureA = SKTexture(imageNamed: "bird_a")
+        birdTextureA.filteringMode = .linear
+        let birdTextureB = SKTexture(imageNamed: "bird_b")
+        birdTextureB.filteringMode = .linear
+        // 2種類のテクスチャを交互に変更するアニメーションを作成
+        let textureAnimation = SKAction.animate(with: [birdTextureA, birdTextureB], timePerFrame: 0.2)
+        let flap = SKAction.repeatForever(textureAnimation)
+        // スプライトを作成
+        bird = SKSpriteNode(texture: birdTextureA)
+        bird.position = CGPoint(x: self.frame.size.width * 0.2, y: self.frame.size.height * 0.7)
+        // アニメーションを設定
+        bird.run(flap)
+        // スプライトを追加する
+        addChild(bird)
     }
 }
