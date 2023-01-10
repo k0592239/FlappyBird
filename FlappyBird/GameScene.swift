@@ -19,6 +19,9 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     let scoreCategory: UInt32 = 1 << 3      // 0...01000
     // スコア用
     var score = 0
+    var scoreLabelNode:SKLabelNode!
+    var bestscoreLabelNode:SKLabelNode!
+    let userDefaults:UserDefaults = UserDefaults.standard
 
     // SKView上にシーンが表示された時に呼ばれるメソッド
     override func didMove(to view: SKView) {
@@ -38,6 +41,8 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         setupCloud()
         setupWall()
         setupBird()
+        // スコア標示ラベルの設定
+        setupScoreLabel()
     }
     // 地面を標示する
     func setupGround() {
@@ -225,6 +230,15 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             // スコアカウント用の透明な壁と衝突した
             print("ScoreUp")
             score += 1
+            scoreLabelNode.text = "Score:\(score)"
+            // ベストスコア更新か確認する
+            var bestScore = userDefaults.integer(forKey: "BEST")
+            if score > bestScore {
+                bestScore = score
+                bestscoreLabelNode.text = "Best Score:\(bestScore)"
+                userDefaults.set(bestScore, forKey: "BEST")
+                userDefaults.synchronize()
+            }
         } else {
             // 壁か地面と衝突した
             print("GameOver")
@@ -243,6 +257,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     func restart() {
         // スコアを0にする
         score = 0
+        scoreLabelNode.text = "Score:\(score)"
         // 鳥を初期位置に戻し、壁と地面の両方に反発するように戻す
         bird.position = CGPoint(x: self.frame.size.width * 0.2, y:self.frame.size.height * 0.7)
         bird.physicsBody?.velocity = CGVector.zero
@@ -254,5 +269,25 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         bird.speed = 1
         // スクロールを再開させる
         scrollNode.speed = 1
+    }
+    // スコア表示
+    func setupScoreLabel() {
+        score = 0
+        scoreLabelNode = SKLabelNode()
+        scoreLabelNode.fontColor = UIColor.black
+        scoreLabelNode.position = CGPoint(x: 10, y: self.frame.size.height - 60)
+        scoreLabelNode.zPosition = 100 // 一番手前に表示する
+        scoreLabelNode.horizontalAlignmentMode = SKLabelHorizontalAlignmentMode.left
+        scoreLabelNode.text = "Score:\(score)"
+        self.addChild(scoreLabelNode)
+        // ベストスコア表示を作成
+        let bestScore = userDefaults.integer(forKey: "BEST")
+        bestscoreLabelNode = SKLabelNode()
+        bestscoreLabelNode.fontColor = UIColor.black
+        bestscoreLabelNode.position = CGPoint(x: 10, y: self.frame.size.height - 90)
+        bestscoreLabelNode.zPosition = 100 // 一番手前に標示する
+        bestscoreLabelNode.horizontalAlignmentMode = SKLabelHorizontalAlignmentMode.left
+        bestscoreLabelNode.text = "Best Score:\(bestScore)"
+        self.addChild(bestscoreLabelNode)
     }
 }
