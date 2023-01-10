@@ -205,10 +205,14 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     }
     // 画面をタップした時に呼ばれる
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
-        // 鳥の速度をゼロにする
-        bird.physicsBody?.velocity = CGVector.init(dx: 0, dy: 10)
-        // 鳥に縦方向の力を与える
-        bird.physicsBody?.applyImpulse(CGVector(dx: 0, dy: 15))
+        if scrollNode.speed > 0 {
+            // 鳥の速度をゼロにする
+            bird.physicsBody?.velocity = CGVector.init(dx: 0, dy: 10)
+            // 鳥に縦方向の力を与える
+            bird.physicsBody?.applyImpulse(CGVector(dx: 0, dy: 15))
+        } else if bird.speed == 0 {
+            restart()
+        }
     }
     // SKPhysicsContactDelegateのメソッド。衝突した時に呼ばれる
     func didBegin(_ contact: SKPhysicsContact) {
@@ -234,5 +238,21 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
                 self.bird.speed = 0
             })
         }
+    }
+    // リスタート
+    func restart() {
+        // スコアを0にする
+        score = 0
+        // 鳥を初期位置に戻し、壁と地面の両方に反発するように戻す
+        bird.position = CGPoint(x: self.frame.size.width * 0.2, y:self.frame.size.height * 0.7)
+        bird.physicsBody?.velocity = CGVector.zero
+        bird.physicsBody?.collisionBitMask = groundCategory | wallCategory
+        bird.zRotation = 0
+        // 全ての壁を取り除く
+        wallNode.removeAllChildren()
+        // 鳥の羽ばたきを戻す
+        bird.speed = 1
+        // スクロールを再開させる
+        scrollNode.speed = 1
     }
 }
