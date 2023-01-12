@@ -29,6 +29,9 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     var itemScoreLabelNode:SKLabelNode!
     // 下の壁の位置
     var under_wall_y:CGFloat = 0.0
+    // アイテム取得音作成
+    let getItemSound = SKAction.playSoundFileNamed("success.mp3", waitForCompletion: false)
+
     // SKView上にシーンが表示された時に呼ばれるメソッド
     override func didMove(to view: SKView) {
         // 重力を設定
@@ -155,6 +158,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             under.position = CGPoint(x: 0, y: self.under_wall_y)
             // 下側の壁に物理体を設定する
             under.physicsBody = SKPhysicsBody(rectangleOf: wallTexture.size())
+            under.physicsBody?.categoryBitMask = self.wallCategory
             under.physicsBody?.isDynamic = false
             // 壁をまとめるノードに下側の壁を追加
             wall.addChild(under)
@@ -163,6 +167,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             upper.position = CGPoint(x: 0, y: self.under_wall_y + wallTexture.size().height + slit_length)
             // 上側の壁に物理体を設定する
             upper.physicsBody = SKPhysicsBody(rectangleOf: wallTexture.size())
+            upper.physicsBody?.categoryBitMask = self.wallCategory
             upper.physicsBody?.isDynamic = false
             // 壁をまとめるノードに上側の壁を追加
             wall.addChild(upper)
@@ -229,20 +234,29 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         // ２つのアニメーションを順に実行するアクションを作成
         let itemAnimation = SKAction.sequence([moveItem, removeItem])
         let random_range: CGFloat = 40
+        // 壁、鳥の画像を高さ読み込む
+        let wallHeight = SKTexture(imageNamed: "wall").size().height
+        let birdHeight = SKTexture(imageNamed: "bird_a").size().height
+
         // アイテムを生成するアクションを作成
-        let createWallAnimation = SKAction.run({
+        let createItemAnimation = SKAction.run({
             // アイテムをまとめるノードを作成
             self.itemNode = SKNode()
             self.itemNode.position = CGPoint(x: self.frame.size.width + itemTexture.size().width / 2, y: 0)
             self.itemNode.zPosition = -50 // 雲より手前、地面より奥
 
-            // 壁の画像を読み込む
-            let wallHeight = SKTexture(imageNamed: "wall").size().height
             // ランダム値を足して、アイテムの表示位置を決定する
             let random_y = CGFloat.random(in: 0...random_range)
             // アイテムを作成
             let item = SKSpriteNode(texture: itemTexture)
-            item.position = CGPoint(x: 0, y: wallHeight / 2 + self.under_wall_y + itemTexture.size().height + random_y)
+            
+            // アイテムの表示位置
+            // (下の壁の中心位置 + 壁の高さ1/2) = 画面で見えている下の壁の天辺
+            // 鳥１つ分の高さ + ランダム値
+            item.position = CGPoint(
+                x: 0,
+                y: (self.under_wall_y + wallHeight / 2) +  birdHeight + random_y
+            )
             // アイテムに物理体を設定する
             item.physicsBody = SKPhysicsBody(rectangleOf: itemTexture.size())
             item.physicsBody?.categoryBitMask = self.itemCategory
@@ -255,10 +269,10 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             self.wallNode.addChild(self.itemNode)
         })
         // 次のアイテム作成までの時間待ちのアクションを作成
-        let waitAnimation = SKAction.wait(forDuration: 3)
+        let waitAnimation = SKAction.wait(forDuration: 2)
         // アイテムを作成 -> 時間待ち -> アイテムを作成を無限に繰り返すアクションを作成
-        let repeatForeverAnimation = SKAction.repeatForever(SKAction.sequence([createWallAnimation, waitAnimation]))
-        // vを表示するノードにアイテムの作成を無限に繰り返すアクションを設定
+        let repeatForeverAnimation = SKAction.repeatForever(SKAction.sequence([createItemAnimation, waitAnimation]))
+        // 壁を表示するノードにアイテムの作成を無限に繰り返すアクションを設定
         wallNode.run(repeatForeverAnimation)
     }
     // 画面をタップした時に呼ばれる
@@ -295,14 +309,16 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         } else if (contact.bodyA.categoryBitMask & itemCategory) == itemCategory ||
                     (contact.bodyB.categoryBitMask & itemCategory) == itemCategory {
             print("item get")
-            // 再生データの作成.
-            let music = SKAction.playSoundFileNamed("success.mp3", waitForCompletion: false)
-            self.run(music) // 音を鳴らす
+            self.run(getItemSound) // 音を鳴らす
             // アイテムスコアをカウントアップ
             itemScore += 1
             itemScoreLabelNode.text = "Item Score:\(itemScore)"
             // アイテムを消す
-            itemNode.removeFromParent()
+            if (contact.bodyA.categoryBitMask & itemCategory) == itemCategory {
+                contact.bodyA.node?.removeFromParent()
+            } else {
+                contact.bodyB.node?.removeFromParent()
+            }
         } else {
             // 壁か地面と衝突した
             print("GameOver")
